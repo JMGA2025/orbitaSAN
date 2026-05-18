@@ -80,79 +80,6 @@
       }
     });
 
-    // Componente de generación de chispas y proyecciones dinámicas de soldadura
-    AFRAME.registerComponent('generador-chispas', {
-      schema: {
-        cantidad: {type: 'int', default: 35}
-      },
-      init: function () {
-        for (let i = 0; i < this.data.cantidad; i++) {
-          this.crearChispa();
-        }
-      },
-      crearChispa: function () {
-        const chispa = document.createElement('a-entity');
-        
-        // Geometría aleatoria simulando chispas facetadas incandescentes
-        const tipos = ['octahedron', 'tetrahedron'];
-        const tipo = tipos[Math.floor(Math.random() * tipos.length)];
-        chispa.setAttribute('geometry', {
-          primitive: tipo,
-          radius: 0.015 + Math.random() * 0.03
-        });
-
-        // Colores de arco eléctrico (Cian/Azul plasma y dorado incandescente)
-        const colores = ['#4df0ff', '#e0d070', '#ff6600', '#ffffff'];
-        const color = colores[Math.floor(Math.random() * colores.length)];
-        
-        chispa.setAttribute('material', {
-          color: color,
-          shader: 'flat',
-          transparent: true,
-          opacity: 0.8
-        });
-
-        // Posición inicial cerca del núcleo central
-        const x = (Math.random() - 0.5) * 0.4;
-        const y = 0.5 + Math.random() * 0.4;
-        const z = (Math.random() - 0.5) * 0.4;
-        chispa.setAttribute('position', `${x} ${y} ${z}`);
-
-        // Animación de dispersión, rotación y desvanecimiento
-        const tx = x + (Math.random() - 0.5) * 2.5;
-        const ty = y + 1.2 + Math.random() * 1.5;
-        const tz = z + (Math.random() - 0.5) * 2.5;
-        const dur = 2500 + Math.random() * 3500;
-
-        chispa.setAttribute('animation__pos', {
-          property: 'position',
-          to: `${tx} ${ty} ${tz}`,
-          dur: dur,
-          loop: true,
-          easing: 'easeOutQuad'
-        });
-
-        chispa.setAttribute('animation__rot', {
-          property: 'rotation',
-          to: `${Math.random() * 360} ${Math.random() * 360} ${Math.random() * 360}`,
-          dur: dur,
-          loop: true,
-          easing: 'linear'
-        });
-
-        chispa.setAttribute('animation__scl', {
-          property: 'scale',
-          from: '1 1 1',
-          to: '0.01 0.01 0.01',
-          dur: dur,
-          loop: true,
-          easing: 'easeInQuad'
-        });
-
-        this.el.appendChild(chispa);
-      }
-    });
-
     // Componente interactivo para punteros láser de Quest 3 y mouse en PC
     AFRAME.registerComponent('palabra-interactiva', {
       schema: { idConcepto: {type: 'string'} },
@@ -307,26 +234,23 @@
   <!-- Espacio estelar dinámico -->
   <a-entity id="estrellas"></a-entity>
 
-  <!-- EFECTOS DE CHISPAS EN EL CENTRO -->
-  <a-entity generador-chispas position="0 0.5 0"></a-entity>
-
-  <!-- PANEL DE SELECCIÓN DE ENTORNO (VR vs XR) -->
-  <!-- Flota a la izquierda del usuario para fácil acceso -->
-  <a-entity id="consola-entorno" position="-1.5 1.5 -1.2" rotation="10 40 0">
-    <a-plane width="1.2" height="0.8" color="#000" opacity="0.9" material="shader:flat">
-      <!-- Borde del panel -->
-      <a-plane width="1.24" height="0.84" color="#e0d070" position="0 0 -0.01" opacity="0.3" material="shader:flat"></a-plane>
+  <!-- PANEL DE SELECCIÓN DE ENTORNO DISCRETO (VR vs XR) -->
+  <!-- Reubicado a nivel de cadera/consola (Y: 0.7, Z: -1.2) e inclinado ligeramente hacia arriba (-40°) para no obstaculizar la vista orbital -->
+  <a-entity id="consola-entorno" position="-1.0 0.7 -1.2" rotation="-40 40 0">
+    <a-plane width="0.9" height="0.6" color="#000" opacity="0.95" material="shader:flat">
+      <!-- Borde sutil del panel -->
+      <a-plane width="0.93" height="0.63" color="#e0d070" position="0 0 -0.01" opacity="0.3" material="shader:flat"></a-plane>
       
-      <a-text value="ENTORNO" font="exo2bold" align="center" color="#e0d070" width="3" position="0 0.28 0.01"></a-text>
+      <a-text value="ENTORNO" font="exo2bold" align="center" color="#e0d070" width="2.2" position="0 0.20 0.01"></a-text>
       
       <!-- Botón Modo VR -->
-      <a-plane id="btn-vr-active" class="interactable" control-entorno="modo: vr" width="0.9" height="0.18" color="#e0d070" position="0 0.05 0.02" material="shader:flat">
-        <a-text value="VR ESPACIO" font="exo2bold" align="center" color="#000" width="2.4"></a-text>
+      <a-plane id="btn-vr-active" class="interactable" control-entorno="modo: vr" width="0.75" height="0.13" color="#e0d070" position="0 0.04 0.02" material="shader:flat">
+        <a-text value="VR ESPACIO" font="exo2bold" align="center" color="#000" width="1.8"></a-text>
       </a-plane>
 
       <!-- Botón Modo XR (Realidad Mixta Passthrough) -->
-      <a-plane id="btn-xr-active" class="interactable" control-entorno="modo: xr" width="0.9" height="0.18" color="#111122" position="0 -0.18 0.02" material="shader:flat">
-        <a-text value="XR MIXTA" font="exo2bold" align="center" color="#fff" width="2.4"></a-text>
+      <a-plane id="btn-xr-active" class="interactable" control-entorno="modo: xr" width="0.75" height="0.13" color="#111122" position="0 -0.13 0.02" material="shader:flat">
+        <a-text value="XR MIXTA" font="exo2bold" align="center" color="#fff" width="1.8"></a-text>
       </a-plane>
     </a-plane>
   </a-entity>
@@ -355,8 +279,7 @@
     <!-- 4. Cordón (Ángulo 43.2°) -->
     <a-entity movimiento-vivo position="2.19 1.5 -2.33" rotation="0 -43.2 0">
       <a-image src="./termino_cordon.png" width="1.5" height="0.5" transparent="true"></a-image>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_cordon" width="1.9" height="0.9" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
-    </a-entity>
+      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_cordon" width="1.9" height="0.9" material="opacity: 0; transparent: true" position="0 0 0.01"></a-entity>
     
     <!-- 5. DC (Ángulo 57.6°) -->
     <a-entity movimiento-vivo position="2.70 1.8 -1.71" rotation="0 -57.6 0">
@@ -480,7 +403,7 @@
     <!-- 25. ZAT (Ángulo 345.6°) -->
     <a-entity movimiento-vivo position="-0.80 1.9 -3.10" rotation="0 -345.6 0">
       <a-image src="./termino_zat.png" width="1.2" height="0.5" transparent="true"></a-image>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_zat" width="1.6" height="0.9" material="opacity: 0; transparent: true" position="0 0 0.01"></a-entity>
+      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_zat" width="1.6" height="0.9" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
   </a-entity>
