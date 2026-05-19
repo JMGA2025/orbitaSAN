@@ -19,10 +19,29 @@
     #btn-entrar:hover { background: #e0d070; color: #000; box-shadow: 0 0 30px rgba(224, 208, 112, 0.6); transform: scale(1.05); }
     #btn-vr { padding: 14px 48px; background: rgba(100, 180, 255, 0.05); border: 1px solid #64b4ff; border-radius: 50px; color: #64b4ff; font-size: 1.1rem; cursor: pointer; letter-spacing: 3px; transition: all 0.4s ease; box-shadow: 0 0 15px rgba(100, 180, 255, 0.1); margin-top: 12px; }
     #btn-vr:hover { background: #64b4ff; color: #000; box-shadow: 0 0 30px rgba(100, 180, 255, 0.6); transform: scale(1.05); }
+    #btn-vr { padding: 14px 36px; }
+    #btn-mr { padding: 14px 36px; background: rgba(100, 255, 180, 0.05); border: 1px solid #40e090; border-radius: 50px; color: #40e090; font-size: 1.1rem; cursor: pointer; letter-spacing: 3px; transition: all 0.4s ease; box-shadow: 0 0 15px rgba(64, 224, 144, 0.1); }
+    #btn-mr:hover { background: #40e090; color: #000; box-shadow: 0 0 30px rgba(64, 224, 144, 0.6); transform: scale(1.05); }
     #btn-vr-nativo, #btn-ar-nativo { display: none !important; }
   </style>
 
   <script>
+    // ─────────────────────────────────────────────────
+    // BRIDGE Quest 3: convierte triggerdown del láser en evento 'click' de A-Frame
+    // Sin este componente los planos .interactable no responden al gatillo
+    // ─────────────────────────────────────────────────
+    AFRAME.registerComponent('quest-click-bridge', {
+      init: function () {
+        var el = this.el;
+        // El controlador emite 'triggerdown' en el mando; laser-controls lo propaga
+        // como 'click' SOLO si el raycaster está en la misma entidad que el mando.
+        // Para garantizarlo escuchamos ambas vías:
+        el.addEventListener('triggerdown', function () { el.emit('click'); });
+        // También 'mousedown' para compatibilidad PC
+        el.addEventListener('mousedown', function () { el.emit('click'); });
+      }
+    });
+
     // Mapeo preciso entre el ID de concepto y la ID de la tarjeta explicativa
     const ASOCIACIONES_SAN = {
       'concept_ac':                { cardId: '#card_ac' },
@@ -200,6 +219,32 @@
       }
     });
 
+    // Componente botón mute
+    AFRAME.registerComponent('btn-mute-plane', {
+      init: function () {
+        var el = this.el;
+        var silenciado = false;
+        el.addEventListener('mouseenter', function () { el.setAttribute('color', '#333366'); });
+        el.addEventListener('mouseleave', function () { el.setAttribute('color', '#222244'); });
+        el.addEventListener('click', function () {
+          silenciado = !silenciado;
+          var audio = document.getElementById('musica-fondo');
+          var txt   = document.querySelector('#txt-mute');
+          if (silenciado) {
+            if (audio) audio.pause();
+            txt.setAttribute('value', '♪ SILENCIO');
+            txt.setAttribute('color', '#ff6666');
+            el.setAttribute('color', '#442222');
+          } else {
+            if (audio) audio.play().catch(function(){});
+            txt.setAttribute('value', '♪ MÚSICA');
+            txt.setAttribute('color', '#a0a0ff');
+            el.setAttribute('color', '#222244');
+          }
+        });
+      }
+    });
+
     // Componente VR/XR para alternar entorno
     AFRAME.registerComponent('control-entorno', {
       schema: { modo: { type: 'string' } },
@@ -246,7 +291,10 @@
     Apunta a las palabras flotantes y pulsa el gatillo de tus mandos de Meta Quest 3,<br>o haz clic en PC.
   </small></p>
   <button id="btn-entrar" onclick="iniciarDesdeBoton()">ENTRAR (PC)</button>
-  <button id="btn-vr" onclick="entrarEnVR()">ENTRAR EN VR &#9711;</button>
+  <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+    <button id="btn-vr" onclick="entrarEnVR()">ENTRAR EN VR ◎</button>
+    <button id="btn-mr" onclick="entrarEnMR()">ENTRAR EN MR ◈</button>
+  </div>
 </div>
 
 <!-- Botones nativos de A-Frame: ocultos visualmente pero necesarios para la API WebXR -->
@@ -261,8 +309,8 @@
 <a-scene
   background="color: #000005"
   fog="type: exponential; color: #000008; density: 0.06"
-  renderer="antialias: true; colorManagement: true;"
-  webxr="requiredFeatures: local-floor; optionalFeatures: hand-tracking"
+  renderer="antialias: true; colorManagement: true; alpha: true;"
+  webxr="requiredFeatures: local-floor; optionalFeatures: hand-tracking,bounded-floor,layers"
   xr-mode-ui="enabled: true; enterVRButton: #btn-vr-nativo; enterARButton: #btn-ar-nativo">
 
   <!-- FIX #5: timeout subido a 10000 ms para red lenta del visor -->
@@ -335,18 +383,30 @@
   <!-- FIX #9: estrellas como esferas simples, cantidad reducida para la GPU del Quest -->
   <a-entity id="estrellas"></a-entity>
 
+  <!-- BOTÓN MUTE DE MÚSICA — esquina inferior izquierda del campo de visión -->
+  <a-entity id="panel-mute" position="1.1 0.5 -1.2" rotation="-30 -35 0">
+    <a-plane class="interactable" quest-click-bridge id="btn-mute-plane"
+             width="0.55" height="0.20" color="#222244" opacity="0.95"
+             material="shader:flat">
+      <a-plane width="0.57" height="0.22" color="#a0a0ff" position="0 0 -0.01"
+               opacity="0.25" material="shader:flat"></a-plane>
+      <a-text id="txt-mute" value="♪ MÚSICA" font="exo2bold" align="center"
+              color="#a0a0ff" width="1.6" position="0 0 0.01"></a-text>
+    </a-plane>
+  </a-entity>
+
   <!-- CONSOLA DE ENTORNO (VR / XR) -->
   <a-entity id="consola-entorno" position="-1.0 0.7 -1.2" rotation="-40 40 0">
     <a-plane width="0.9" height="0.6" color="#000" opacity="0.95" material="shader:flat">
       <a-plane width="0.93" height="0.63" color="#e0d070" position="0 0 -0.01" opacity="0.3" material="shader:flat"></a-plane>
       <a-text value="ENTORNO" font="exo2bold" align="center" color="#e0d070" width="2.2" position="0 0.20 0.01"></a-text>
 
-      <a-plane id="btn-vr-active" class="interactable" control-entorno="modo: vr"
+      <a-plane id="btn-vr-active" class="interactable" quest-click-bridge control-entorno="modo: vr"
                width="0.75" height="0.13" color="#e0d070" position="0 0.04 0.02" material="shader:flat">
         <a-text value="VR ESPACIO" font="exo2bold" align="center" color="#000" width="1.8"></a-text>
       </a-plane>
 
-      <a-plane id="btn-xr-active" class="interactable" control-entorno="modo: xr"
+      <a-plane id="btn-xr-active" class="interactable" quest-click-bridge control-entorno="modo: xr"
                width="0.75" height="0.13" color="#111122" position="0 -0.13 0.02" material="shader:flat">
         <a-text value="XR MIXTA" font="exo2bold" align="center" color="#fff" width="1.8"></a-text>
       </a-plane>
@@ -360,175 +420,175 @@
     <!-- 1. AC -->
     <a-entity movimiento-vivo position="0 1.7 -3.2">
       <a-entity imagen-con-fallback="texto: AC; src: #term_ac; w: 1.2; h: 0.4"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_ac"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_ac"
                width="1.6" height="0.8" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 2. Arco Eléctrico -->
     <a-entity movimiento-vivo position="0.80 1.3 -3.10" rotation="0 -14.4 0">
       <a-entity imagen-con-fallback="texto: Arco electrico; src: #term_arco; w: 1.8; h: 0.6"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_arco"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_arco"
                width="2.2" height="1.0" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 3. Baño de Fusión -->
     <a-entity movimiento-vivo position="1.54 2.0 -2.80" rotation="0 -28.8 0">
       <a-entity imagen-con-fallback="texto: Bano de fusion; src: #term_bano; w: 1.8; h: 0.6"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_bano"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_bano"
                width="2.2" height="1.0" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 4. Cordón -->
     <a-entity movimiento-vivo position="2.19 1.5 -2.33" rotation="0 -43.2 0">
       <a-entity imagen-con-fallback="texto: Cordon; src: #term_cordon; w: 1.5; h: 0.5"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_cordon"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_cordon"
                width="1.9" height="0.9" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 5. DC -->
     <a-entity movimiento-vivo position="2.70 1.8 -1.71" rotation="0 -57.6 0">
       <a-entity imagen-con-fallback="texto: DC; src: #term_dc; w: 1.2; h: 0.4"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_dc"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_dc"
                width="1.6" height="0.8" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 6. E6013 -->
     <a-entity movimiento-vivo position="3.04 1.2 -0.99" rotation="0 -72.0 0">
       <a-entity imagen-con-fallback="texto: E6013; src: #term_e6013; w: 1.5; h: 0.5"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_e6013"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_e6013"
                width="1.9" height="0.9" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 7. E7016 -->
     <a-entity movimiento-vivo position="3.19 2.2 -0.20" rotation="0 -86.4 0">
       <a-entity imagen-con-fallback="texto: E7016; src: #term_e7016; w: 1.5; h: 0.5"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_e7016"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_e7016"
                width="1.9" height="0.9" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 8. E7018 -->
     <a-entity movimiento-vivo position="3.14 1.4 0.60" rotation="0 -100.8 0">
       <a-entity imagen-con-fallback="texto: E7018; src: #term_e7018; w: 1.5; h: 0.5"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_e7018"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_e7018"
                width="1.9" height="0.9" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 9. E7024 -->
     <a-entity movimiento-vivo position="2.90 1.9 1.36" rotation="0 -115.2 0">
       <a-entity imagen-con-fallback="texto: E7024; src: #term_e7024; w: 1.5; h: 0.5"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_e7024"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_e7024"
                width="1.9" height="0.9" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 10. Electrodo -->
     <a-entity movimiento-vivo position="2.46 1.1 2.04" rotation="0 -129.6 0">
       <a-entity imagen-con-fallback="texto: Electrodo; src: #term_electrodo; w: 1.8; h: 0.6"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_electrodo"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_electrodo"
                width="2.2" height="1.0" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 11. Escoria -->
     <a-entity movimiento-vivo position="1.88 2.3 2.59" rotation="0 -144.0 0">
       <a-entity imagen-con-fallback="texto: Escoria; src: #term_escoria; w: 1.4; h: 0.35"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_escoria"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_escoria"
                width="1.8" height="0.75" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 12. Higroscópico -->
     <a-entity movimiento-vivo position="1.18 1.6 2.98" rotation="0 -158.4 0">
       <a-entity imagen-con-fallback="texto: Higroscopico; src: #term_higroscopico; w: 1.6; h: 0.4"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_higroscopico"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_higroscopico"
                width="2.0" height="0.8" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 13. Intensidad de Corriente -->
     <a-entity movimiento-vivo position="0.40 1.9 3.18" rotation="0 -172.8 0">
       <a-entity imagen-con-fallback="texto: Intensidad; src: #term_intensidad; w: 2.4; h: 0.6"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_intensidad"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_intensidad"
                width="2.8" height="1.0" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 14. Ionización -->
     <a-entity movimiento-vivo position="-0.40 1.3 3.18" rotation="0 -187.2 0">
       <a-entity imagen-con-fallback="texto: Ionizacion; src: #term_ionizacion; w: 1.6; h: 0.4"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_ionizacion"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_ionizacion"
                width="2.0" height="0.8" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 15. Masa -->
     <a-entity movimiento-vivo position="-1.18 2.1 2.98" rotation="0 -201.6 0">
       <a-entity imagen-con-fallback="texto: Masa; src: #term_masa; w: 1.2; h: 0.3"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_masa"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_masa"
                width="1.6" height="0.7" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 16. Penetración -->
     <a-entity movimiento-vivo position="-1.88 1.5 2.59" rotation="0 -216.0 0">
       <a-entity imagen-con-fallback="texto: Penetracion; src: #term_penetracion; w: 1.6; h: 0.4"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_penetracion"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_penetracion"
                width="2.0" height="0.8" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 17. Piqueta -->
     <a-entity movimiento-vivo position="-2.46 2.0 2.04" rotation="0 -230.4 0">
       <a-entity imagen-con-fallback="texto: Piqueta; src: #term_piqueta; w: 1.4; h: 0.35"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_piqueta"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_piqueta"
                width="1.8" height="0.75" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 18. Plasma -->
     <a-entity movimiento-vivo position="-2.90 1.2 1.36" rotation="0 -244.8 0">
       <a-entity imagen-con-fallback="texto: Plasma; src: #term_plasma; w: 1.4; h: 0.35"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_plasma"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_plasma"
                width="1.8" height="0.75" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 19. Polaridad -->
     <a-entity movimiento-vivo position="-3.14 2.2 0.60" rotation="0 -259.2 0">
       <a-entity imagen-con-fallback="texto: Polaridad; src: #term_polaridad; w: 1.5; h: 0.375"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_polaridad"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_polaridad"
                width="1.9" height="0.775" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 20. Polaridad Directa DC- -->
     <a-entity movimiento-vivo position="-3.19 1.4 -0.20" rotation="0 -273.6 0">
       <a-entity imagen-con-fallback="texto: Polaridad directa; src: #term_polaridad_directa; w: 2.5; h: 0.5"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_polaridad_directa"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_polaridad_directa"
                width="2.9" height="0.9" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 21. Polaridad Inversa DC+ -->
     <a-entity movimiento-vivo position="-3.04 1.8 -0.99" rotation="0 -288.0 0">
       <a-entity imagen-con-fallback="texto: Polaridad inversa; src: #term_polaridad_inversa; w: 2.2; h: 0.5"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_polaridad_inversa"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_polaridad_inversa"
                width="2.6" height="0.9" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 22. Revestimiento -->
     <a-entity movimiento-vivo position="-2.70 1.1 -1.71" rotation="0 -302.4 0">
       <a-entity imagen-con-fallback="texto: Revestimiento; src: #term_revestimiento; w: 1.8; h: 0.5"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_revestimiento"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_revestimiento"
                width="2.2" height="0.9" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 23. Tensión -->
     <a-entity movimiento-vivo position="-2.19 2.3 -2.33" rotation="0 -316.8 0">
       <a-entity imagen-con-fallback="texto: Tension; src: #term_tension; w: 1.4; h: 0.5"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_tension"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_tension"
                width="1.8" height="0.9" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 24. WPS -->
     <a-entity movimiento-vivo position="-1.54 1.6 -2.80" rotation="0 -331.2 0">
       <a-entity imagen-con-fallback="texto: WPS; src: #term_wps; w: 1.2; h: 0.5"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_wps"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_wps"
                width="1.6" height="0.9" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
     <!-- 25. ZAT -->
     <a-entity movimiento-vivo position="-0.80 1.9 -3.10" rotation="0 -345.6 0">
       <a-entity imagen-con-fallback="texto: ZAT; src: #term_zat; w: 1.2; h: 0.5"></a-entity>
-      <a-plane class="interactable" palabra-interactiva="idConcepto: concept_zat"
+      <a-plane class="interactable" quest-click-bridge palabra-interactiva="idConcepto: concept_zat"
                width="1.6" height="0.9" material="opacity: 0; transparent: true" position="0 0 0.01"></a-plane>
     </a-entity>
 
@@ -546,7 +606,7 @@
               color="#ffffff" width="2.1" position="0 0.1 0.02" font="exo2bold"></a-text>
 
       <!-- FIX #4: botón cerrar usa componente boton-cerrar, sin onclick HTML -->
-      <a-plane class="interactable" boton-cerrar
+      <a-plane class="interactable" quest-click-bridge boton-cerrar
                width="0.6" height="0.18" color="#992222" position="0 -0.85 0.02"
                animation__hover="property: scale; to: 1.1 1.1 1.1; dur: 150; startEvents: mouseenter"
                animation__leave="property: scale; to: 1 1 1; dur: 150; startEvents: mouseleave">
@@ -609,6 +669,24 @@
 
   function mostrarNube() {
     document.getElementById('nube-palabras').setAttribute('visible', 'true');
+  }
+
+  // Botón ENTRAR EN MR — activa el modo passthrough (Realidad Mixta) en Quest 3
+  function entrarEnMR() {
+    var scene = document.querySelector('a-scene');
+    iniciarDesdeBoton();
+    setTimeout(function () {
+      // enterAR() activa la sesión WebXR con blend-mode passthrough
+      if (scene.enterAR) {
+        scene.enterAR();
+      } else {
+        // Fallback: enterVR con fondo transparente
+        scene.setAttribute('background', 'transparent: true; color: #000000');
+        scene.setAttribute('fog', 'density: 0');
+        document.querySelector('#estrellas').setAttribute('visible', 'false');
+        scene.enterVR();
+      }
+    }, 400);
   }
 
   // Botón ENTRAR EN VR — solicita sesión WebXR inmersiva al visor Quest 3
