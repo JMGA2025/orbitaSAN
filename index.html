@@ -304,7 +304,9 @@
   fog="type:exponential;color:#000008;density:0.06"
   renderer="antialias:true;colorManagement:true;alpha:true;"
   webxr="requiredFeatures:local-floor;optionalFeatures:hand-tracking,bounded-floor,layers"
-  xr-mode-ui="enabled:true;enterVRButton:#btn-vr-nativo;enterARButton:#btn-ar-nativo">
+  xr-mode-ui="enabled:true;enterVRButton:#btn-vr-nativo;enterARButton:#btn-ar-nativo"
+  cursor="rayOrigin:mouse"
+  raycaster="objects:.interactable;far:20">
 
   <a-assets timeout="15000">
     <!-- Tarjetas explicativas -->
@@ -383,16 +385,8 @@
   ══════════════════════════════════════════════════════ -->
   <a-entity id="rig" position="0 0 0">
 
-    <!-- Cámara con cursor para PC -->
-    <a-camera position="0 1.6 0" wasd-controls look-controls>
-      <a-cursor
-        id="cursor-pc"
-        raycaster="objects:.interactable;far:20;rayOrigin:mouse"
-        material="color:#e0d070;shader:flat;opacity:0.8"
-        geometry="primitive:ring;radiusInner:0.008;radiusOuter:0.013"
-        fuse="false">
-      </a-cursor>
-    </a-camera>
+    <!-- Cámara — el cursor de ratón lo gestiona a-scene directamente -->
+    <a-camera position="0 1.6 0" wasd-controls look-controls></a-camera>
 
     <!-- Mando izquierdo -->
     <a-entity
@@ -663,8 +657,6 @@
   /* ── Cursor PC: desactivar en VR, reactivar al salir ── */
   var scene = document.querySelector('a-scene');
   scene.addEventListener('enter-vr', function () {
-    var c = document.querySelector('#cursor-pc');
-    if (c) c.setAttribute('visible','false');
     document.getElementById('pantalla-inicio').style.display = 'none';
     mostrarNube();
     reproducirAudio();
@@ -679,10 +671,7 @@
       document.querySelector('#btn3d-mr').querySelector('a-text').setAttribute('color','#000000');
     }
   });
-  scene.addEventListener('exit-vr', function () {
-    var c = document.querySelector('#cursor-pc');
-    if (c) c.setAttribute('visible','true');
-  });
+  scene.addEventListener('exit-vr', function () { /* cursor de ratón se reactiva automáticamente */ });
 
   /* ── Botones pantalla de bienvenida ── */
   function iniciarPC() {
