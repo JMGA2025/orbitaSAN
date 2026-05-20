@@ -150,6 +150,8 @@
             txtEl.setAttribute('value', cardId.replace('#card_','').replace(/_/g,' ').toUpperCase());
           }
         };
+        // Devolver el panel a la posición frontal antes de mostrarlo
+        panel.setAttribute('position','0 1.6 -1.8');
         panel.setAttribute('scale','0.01 0.01 0.01');
         panel.setAttribute('visible','true');
         setTimeout(function(){
@@ -168,7 +170,11 @@
         this.el.addEventListener('click', function () {
           var p = document.querySelector('#panel-info');
           p.setAttribute('animation__cerrar','property:scale;to:0.01 0.01 0.01;dur:200;easing:easeInBack');
-          setTimeout(function(){ p.setAttribute('visible','false'); }, 220);
+          setTimeout(function(){
+            p.setAttribute('visible','false');
+            // Alejar el panel para que NO intercepte ningún rayo aunque scale sea >0
+            p.setAttribute('position','0 1.6 100');
+          }, 220);
         });
       }
     });
@@ -406,7 +412,7 @@
 
     <!-- ══ PANEL DE INFORMACIÓN (se abre al pulsar un término) ══
          Posición fija delante del usuario: Y=1.6 (altura de ojos), Z=-1.8 -->
-    <a-entity id="panel-info" position="0 1.6 -1.8" scale="1 1 1" visible="false">
+    <a-entity id="panel-info" position="0 1.6 100" scale="1 1 1" visible="false">
       <a-plane width="2.40" height="1.44" color="#000" opacity="0.85" material="shader:flat">
         <a-plane width="2.44" height="1.48" color="#e0d070" position="0 0 -0.01" opacity="0.3" material="shader:flat"></a-plane>
         <a-image id="card-img" src="#fallback" width="2.38" height="1.42"
