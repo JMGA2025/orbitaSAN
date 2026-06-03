@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Glosario 3D de soldadura</title>
+    <link rel="stylesheet" href="src/styles.css" />
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  </head>
+  <body>
+    <main class="fallback">
+      <h1>Glosario 3D de soldadura</h1>
+      <p>
+        Entra en VR desde el botón del visor o selecciona los términos con el ratón.
+      </p>
+    </main>
+
+    <a-scene
+      background="color: #020509"
+      cursor="rayOrigin: mouse"
+      raycaster="objects: .term-hitbox"
+      renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true"
+      xr-mode-ui="enabled: true"
+      vr-mode-ui="enabled: true"
+    >
+      <a-assets id="glossary-assets"></a-assets>
+
+      <a-entity id="term-cloud"></a-entity>
+      <a-entity id="rig" position="0 0 0">
+        <a-camera look-controls wasd-controls>
+          <a-entity
+            cursor="fuse: false; rayOrigin: entity"
+            raycaster="objects: .term-hitbox"
+            position="0 0 -1"
+            geometry="primitive: ring; radiusInner: 0.008; radiusOuter: 0.014"
+            material="color: #ffd24a; shader: flat"
+          ></a-entity>
+        </a-camera>
+
+        <a-entity
+          laser-controls="hand: left"
+          raycaster="objects: .term-hitbox; far: 6"
+          line="color: #ffd24a; opacity: 0.75"
+        ></a-entity>
+        <a-entity
+          laser-controls="hand: right"
+          raycaster="objects: .term-hitbox; far: 6"
+          line="color: #ffd24a; opacity: 0.75"
+        ></a-entity>
+      </a-entity>
+
+      <a-entity
+        light="type: ambient; color: #ffffff; intensity: 0.8"
+      ></a-entity>
+      <a-entity
+        light="type: point; color: #ffd24a; intensity: 1.1; distance: 5"
+        position="0 2 0"
+      ></a-entity>
+
+      <a-sky color="#020509"></a-sky>
+      <a-ring
+        position="0 0.02 0"
+        rotation="-90 0 0"
+        radius-inner="1.98"
+        radius-outer="2.02"
+        material="color: #ffd24a; shader: flat; opacity: 0.25; transparent: true"
+      ></a-ring>
+    </a-scene>
+
+    <script type="module" src="src/app.js"></script>
+  </body>
+</html>
