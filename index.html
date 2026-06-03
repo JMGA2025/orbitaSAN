@@ -1,100 +1,83 @@
 <!doctype html>
 <html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Glosario 3D de soldadura</title>
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <style>
-      html,
-      body {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-        font-family: Arial, Helvetica, sans-serif;
-        background: #020509;
-      }
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Glosario 3D de soldadura</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <style>
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#020509;font-family:Arial,Helvetica,sans-serif}
+    .fallback{position:fixed;inset:0;display:grid;place-content:center;text-align:center;color:#f4f1e8;background:#020509;padding:24px}
+    .fallback h1,.fallback p{margin:0}
+    a-scene{position:fixed;inset:0}
+  </style>
+</head>
+<body>
+  <main class="fallback">
+    <h1>Glosario 3D de soldadura</h1>
+    <p>Selecciona un término con el ratón o entra en VR desde Meta Quest 3.</p>
+  </main>
 
-      .fallback {
-        position: fixed;
-        inset: 0;
-        display: grid;
-        place-content: center;
-        gap: 8px;
-        padding: 24px;
-        color: #f4f1e8;
-        background: #020509;
-        text-align: center;
-      }
+  <a-scene background="color:#020509" cursor="rayOrigin:mouse" raycaster="objects:.term-hitbox" renderer="antialias:true; colorManagement:true" xr-mode-ui="enabled:true" vr-mode-ui="enabled:true">
+    <a-entity id="term-cloud"></a-entity>
+    <a-camera look-controls wasd-controls position="0 1.6 0">
+      <a-entity cursor="fuse:false; rayOrigin:entity" raycaster="objects:.term-hitbox" position="0 0 -1" geometry="primitive:ring; radiusInner:0.008; radiusOuter:0.014" material="color:#ffd24a; shader:flat"></a-entity>
+    </a-camera>
+    <a-entity laser-controls="hand:left" raycaster="objects:.term-hitbox; far:6" line="color:#ffd24a"></a-entity>
+    <a-entity laser-controls="hand:right" raycaster="objects:.term-hitbox; far:6" line="color:#ffd24a"></a-entity>
+    <a-entity light="type:ambient; color:#fff; intensity:0.8"></a-entity>
+    <a-entity light="type:point; color:#ffd24a; intensity:1.1; distance:5" position="0 2 0"></a-entity>
+    <a-sky color="#020509"></a-sky>
+    <a-ring position="0 0.02 0" rotation="-90 0 0" radius-inner="1.98" radius-outer="2.02" material="color:#ffd24a; shader:flat; opacity:0.25; transparent:true"></a-ring>
+  </a-scene>
 
-      .fallback h1,
-      .fallback p {
-        margin: 0;
-      }
+  <script>
+    const terms=["ZAT","DC","AC","E6013","Arco eléctrico","Baño de fusión","Cordón","Escoria","Electrodo","Revestimiento","Polaridad","Penetración","Masa","Piqueta","WPS","Polaridad directa DC-","Polaridad inversa DC+","Plasma","Ionización","Intensidad de corriente","Tensión","Higroscópico","E7016","E7018","E7024"];
+    const root=document.querySelector("#term-cloud");
+    const radius=2;
+    let activeCard=null;
 
-      a-scene {
-        position: fixed;
-        inset: 0;
-      }
-    </style>
-  </head>
-  <body>
-    <main class="fallback">
-      <h1>Glosario 3D de soldadura</h1>
-      <p>Entra en VR desde el botón del visor o selecciona los términos con el ratón.</p>
-    </main>
+    AFRAME.registerComponent("look-camera",{tick(){const c=document.querySelector("[camera]");if(c)this.el.object3D.lookAt(c.object3D.position)}});
+    AFRAME.registerComponent("orbit",{schema:{a:{type:"number"},s:{type:"number"},h:{type:"number"}},tick(t,d){this.data.a+=d/1000*this.data.s;const x=Math.cos(this.data.a)*radius,z=Math.sin(this.data.a)*radius,y=this.data.h+Math.sin(t/1000+this.data.a)*0.07;this.el.setAttribute("position",`${x} ${y} ${z}`)}});
 
-    <a-scene
-      background="color: #020509"
-      cursor="rayOrigin: mouse"
-      raycaster="objects: .term-hitbox"
-      renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true"
-      xr-mode-ui="enabled: true"
-      vr-mode-ui="enabled: true"
-    >
-      <a-entity id="term-cloud"></a-entity>
+    function slug(text){
+      return text.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replaceAll("+","plus").replaceAll("-","minus").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+    }
 
-      <a-entity id="rig" position="0 0 0">
-        <a-camera look-controls wasd-controls>
-          <a-entity
-            cursor="fuse: false; rayOrigin: entity"
-            raycaster="objects: .term-hitbox"
-            position="0 0 -1"
-            geometry="primitive: ring; radiusInner: 0.008; radiusOuter: 0.014"
-            material="color: #ffd24a; shader: flat"
-          ></a-entity>
-        </a-camera>
+    function addTerm(term,i){
+      const id=slug(term);
+      const group=document.createElement("a-entity");
+      const plane=document.createElement("a-plane");
+      const long=term.length>16;
+      group.setAttribute("look-camera","");
+      group.setAttribute("orbit",`a:${Math.PI*2*i/terms.length}; s:${0.035+(i%4)*0.008}; h:${1+(i%5)*0.32}`);
+      plane.classList.add("term-hitbox");
+      plane.setAttribute("width",long?"1.35":"0.95");
+      plane.setAttribute("height",long?"0.34":"0.24");
+      plane.setAttribute("material",`src:url(./termino_${id}.png); transparent:true; shader:flat; color:#f4f1e8`);
+      plane.addEventListener("mouseenter",()=>plane.setAttribute("material",`src:url(./termino_${id}.png); transparent:true; shader:flat; color:#ffd24a`));
+      plane.addEventListener("mouseleave",()=>plane.setAttribute("material",`src:url(./termino_${id}.png); transparent:true; shader:flat; color:#f4f1e8`));
+      plane.addEventListener("click",()=>showCard(id,group));
+      group.appendChild(plane);
+      root.appendChild(group);
+    }
 
-        <a-entity laser-controls="hand: left" raycaster="objects: .term-hitbox; far: 6" line="color: #ffd24a; opacity: 0.75"></a-entity>
-        <a-entity laser-controls="hand: right" raycaster="objects: .term-hitbox; far: 6" line="color: #ffd24a; opacity: 0.75"></a-entity>
-      </a-entity>
+    function showCard(id,group){
+      if(activeCard)activeCard.remove();
+      const card=document.createElement("a-entity");
+      const panel=document.createElement("a-plane");
+      card.setAttribute("position","1.08 0.02 0");
+      card.setAttribute("scale","0.01 0.01 0.01");
+      card.setAttribute("animation","property:scale; to:1 1 1; dur:180; easing:easeOutCubic");
+      panel.setAttribute("width","1.65");
+      panel.setAttribute("height","0.99");
+      panel.setAttribute("material",`src:url(./${id}.png); transparent:true; shader:flat; side:double`);
+      card.appendChild(panel);
+      group.appendChild(card);
+      activeCard=card;
+    }
 
-      <a-entity light="type: ambient; color: #ffffff; intensity: 0.8"></a-entity>
-      <a-entity light="type: point; color: #ffd24a; intensity: 1.1; distance: 5" position="0 2 0"></a-entity>
-
-      <a-sky color="#020509"></a-sky>
-      <a-ring
-        position="0 0.02 0"
-        rotation="-90 0 0"
-        radius-inner="1.98"
-        radius-outer="2.02"
-        material="color: #ffd24a; shader: flat; opacity: 0.25; transparent: true"
-      ></a-ring>
-    </a-scene>
-
-    <script>
-      const glossary = [
-        { term: "ZAT" },
-        { term: "DC" },
-        { term: "AC" },
-        { term: "E6013" },
-        { term: "Arco eléctrico" },
-        { term: "Baño de fusión" },
-        { term: "Cordón" },
-        { term: "Escoria" },
-        { term: "Electrodo" },
-        { term: "Revestimiento" },
-        { term: "Polaridad" },
-        { term: "Penetración" },
-        { term: "Masa" },
+    terms.forEach(addTerm);
+  </script>
+</body>
+</html>
