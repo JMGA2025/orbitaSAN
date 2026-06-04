@@ -9,6 +9,11 @@
     html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#020509;font-family:Arial,Helvetica,sans-serif}
     .fallback{position:fixed;inset:0;display:grid;place-content:center;text-align:center;color:#f4f1e8;background:#020509;padding:24px}
     .fallback h1,.fallback p{margin:0}
+    #startPanel{position:fixed;inset:0;z-index:10;display:grid;place-content:center;gap:18px;text-align:center;color:#f4f1e8;background:rgba(2,5,9,.92);padding:24px}
+    #startPanel h1{margin:0;font-size:clamp(28px,5vw,52px)}
+    #startPanel p{margin:0;max-width:520px;line-height:1.45;color:#d9e3ea}
+    #startButton{justify-self:center;border:2px solid #ffd24a;border-radius:999px;background:#ffd24a;color:#182330;font-weight:700;font-size:18px;padding:14px 26px;cursor:pointer}
+    #startButton:focus-visible{outline:3px solid #fff;outline-offset:4px}
     a-scene{position:fixed;inset:0}
   </style>
 </head>
@@ -17,6 +22,12 @@
     <h1>Glosario 3D de soldadura</h1>
     <p>Selecciona un término con el ratón o entra en VR desde Meta Quest 3.</p>
   </main>
+  <section id="startPanel">
+    <h1>Glosario 3D de soldadura</h1>
+    <p>Pulsa para iniciar la experiencia y activar la música de fondo.</p>
+    <button id="startButton" type="button">Iniciar experiencia</button>
+  </section>
+  <audio id="bgMusic" src="./orbitaSAN.mp3" preload="auto" loop></audio>
 
   <a-scene background="color:#020509" cursor="rayOrigin:mouse" raycaster="objects:.term-hitbox" renderer="antialias:true; colorManagement:true" xr-mode-ui="enabled:true" vr-mode-ui="enabled:true">
     <a-entity id="term-cloud"></a-entity>
@@ -34,6 +45,9 @@
   <script>
     const terms=["ZAT","DC","AC","E6013","Arco eléctrico","Baño de fusión","Cordón","Escoria","Electrodo","Revestimiento","Polaridad","Penetración","Masa","Piqueta","WPS","Polaridad directa DC-","Polaridad inversa DC+","Plasma","Ionización","Intensidad de corriente","Tensión","Higroscópico","E7016","E7018","E7024"];
     const root=document.querySelector("#term-cloud");
+    const startPanel=document.querySelector("#startPanel");
+    const startButton=document.querySelector("#startButton");
+    const bgMusic=document.querySelector("#bgMusic");
     const radius=2;
     let activeCard=null;
 
@@ -78,6 +92,16 @@
     }
 
     terms.forEach(addTerm);
+
+    startButton.addEventListener("click",async()=>{
+      try{
+        bgMusic.volume=0.35;
+        await bgMusic.play();
+      }catch(error){
+        console.warn("No se pudo iniciar la música:",error);
+      }
+      startPanel.style.display="none";
+    });
   </script>
 </body>
 </html>
